@@ -16,19 +16,21 @@
 # - Starts application daemon.
 
 
-app_name="graylog-notifier"
+APP_NAME="graylog-notifier"
 
-package_dir="graylog_notifier"
+PACKAGE_DIR="graylog_notifier"
 
-envs_dir="/home/${app_name}/.envs"
+ENVS_DIR="/home/${APP_NAME}/.envs"
 
-app_env="${envs_dir}/${app_name}"
+APP_ENV="${ENVS_DIR}/${APP_NAME}"
 
-daemon_path="/home/${app_name}/${app_name}-daemon"
+DAEMON_PATH="/home/${APP_NAME}/${APP_NAME}-daemon"
 
-py_version="2.7"
+PY_VERSION="2.7"
 
-venv="virtualenv"
+CONF_FILE="${APP_NAME}.conf"
+
+VENV="virtualenv"
 
 print () {
     echo; echo $1; echo
@@ -42,23 +44,23 @@ if [ -z "$(ls . | grep 'deploy.sh')" -o -z "$(ls . | grep 'setup.py')" ]; then
 fi
 
 # Check if correct python version is installed
-if [ -z "$(which python${py_version} 2>/dev/null | grep -E "(/\w+)+/python${py_version}")" ]; then
-    print "Seems like python${py_version} is not installed. Please install python${py_version} first."
+if [ -z "$(which python${PY_VERSION} 2>/dev/null | grep -E "(/\w+)+/python${PY_VERSION}")" ]; then
+    print "Seems like python${PY_VERSION} is not installed. Please install python${PY_VERSION} first."
     exit 1
 fi
 
 # Stop daemon if it is running, just in case
-${daemon_path} stop &> /dev/null
-rm -f ${daemon_path} &> /dev/null
+${DAEMON_PATH} stop &> /dev/null
+rm -f ${DAEMON_PATH} &> /dev/null
 
-print "Adding user '${app_name}'..."
-if id -u ${app_name} > /dev/null; then
-    print "User '${app_name}' already exists, skipping."
+print "Adding user '${APP_NAME}'..."
+if id -u ${APP_NAME} > /dev/null; then
+    print "User '${APP_NAME}' already exists, skipping."
 else
-    if useradd ${app_name} -m -b /home -s /bin/bash -U; then
-        print "User '${app_name}' have been created."
+    if useradd ${APP_NAME} -m -b /home -s /bin/bash -U; then
+        print "User '${APP_NAME}' have been created."
     else
-        print "Failed to create user '${app_name}', aborting."
+        print "Failed to create user '${APP_NAME}', aborting."
         exit 1
     fi
 fi
@@ -66,18 +68,23 @@ fi
 print "Installing virtualenv..."
 if pip install virtualenv; then
     # Create vitrualenv for the app
-    mkdir -p ${envs_dir}
+    mkdir -p ${ENVS_DIR}
 
-    if [ -d "${app_env}" ]; then
+    if [ -d "${APP_ENV}" ]; then
         print "Cleaning old virtualenv..."
-        rm -rf ${app_env}
+        rm -rf ${APP_ENV}
     fi
 
-    print "Success. Creating virtualenv for ${app_name}..."
-    if python${py_version} -m ${venv} ${app_env}; then
-        print "Success. Installing ${app_name} application..."
+    print "Success. Creating virtualenv for ${APP_NAME}..."
+    if python${PY_VERSION} -m ${VENV} ${APP_ENV}; then
+
+        # Upgrade pip
+        ${APP_ENV}/bin/pip install --upgrade pip &>/dev/null
+
+
+        print "Success. Installing ${APP_NAME} application..."
         # Install application and its dependencies under virtualenv
-        if ${app_env}/bin/python setup.py install --record files.txt >install.log; then
+        if ${APP_ENV}/bin/python setup.py install --record files.txt >install.log; then
             print "Application installed."
         else
             print "Failed to install application, aborting."
@@ -92,10 +99,10 @@ else
     exit 1
 fi
 
-if [ -n "${conf_file}" ]; then
+if [ -n "${CONF_FILE}" ]; then
     print "Copying configuration file template..."
-    if ! [ -f "/home/${app_name}/${conf_file}" ]; then
-        if cp ${conf_file} /home/${app_name}/${conf_file}; then
+    if ! [ -f "/home/${APP_NAME}/${CONF_FILE}" ]; then
+        if cp ${CONF_FILE} /home/${APP_NAME}/${CONF_FILE}; then
             print "Configuration template copied."
         else
             print "Failed to copy configuration template"
@@ -105,16 +112,16 @@ if [ -n "${conf_file}" ]; then
     fi
 fi
 
-print "Installing ${app_name} daemon..."
-if cp ${package_dir}/daemon/${app_name}-daemon ${daemon_path} && chmod +x ${daemon_path}; then
+print "Installing ${APP_NAME} daemon..."
+if cp ${PACKAGE_DIR}/daemon/${APP_NAME}-daemon ${DAEMON_PATH} && chmod +x ${DAEMON_PATH}; then
     print "Daemon script installed."
 else
-    print "Failed to copy daemon script to the ${daemon_path}"
+    print "Failed to copy daemon script to the ${DAEMON_PATH}"
     exit 1
 fi
 
 print "Setting up access rights..."
-if chown -R ${app_name}:${app_name} /home/${app_name}; then
+if chown -R ${APP_NAME}:${APP_NAME} /home/${APP_NAME}; then
     print "Rights given."
 else
     print "Error occured, aborting."

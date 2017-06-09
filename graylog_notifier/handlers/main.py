@@ -13,4 +13,12 @@ from tornado.web import RequestHandler
 class NotificationHandler(RequestHandler):
     @coroutine
     def post(self):
-        logging.info(json_decode(self.request.body))
+        alert = json_decode(self.request.body)['check_result']
+        subject = "*%s*\n%s\n\n" % (
+            alert['triggered_condition']['title'],
+            alert['result_description']
+        )
+        base = ["> ```%s```" % m['message'] for m in alert['matching_messages']]
+        base = '\n'.join(base)
+        message = subject + base
+        result = yield self.application.notify(message)
