@@ -19,7 +19,7 @@ class NotificationHandler(RequestHandler):
             alert['result_description']
         )
         base = [
-            m['fields']['tag'] + ' : ' +
+            "`" + m['fields']['tag'] + '` : ' +
             m['fields'].get('file', '') +
             "\n> ```%s```" % m['message']
             for m in alert['matching_messages']
