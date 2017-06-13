@@ -18,7 +18,12 @@ class NotificationHandler(RequestHandler):
             alert['triggered_condition']['title'],
             alert['result_description']
         )
-        base = ["> ```%s```" % m['message'] for m in alert['matching_messages']]
+        base = [
+            m['fields']['tag'] + ' : ' +
+            m['fields'].get('file', '') +
+            "\n> ```%s```" % m['message']
+            for m in alert['matching_messages']
+        ]
         base = '\n'.join(base)
         message = subject + base
         result = yield self.application.notify(message)
